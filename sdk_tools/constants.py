@@ -65,7 +65,5 @@ class Constants:
 
     @classmethod
     def sdk_path(cls) -> str:
-        default_path = os.path.join(
-            "/Library", "Developer", "CommandLineTools", "SDKs", "MacOSX.sdk"
-        )
+        default_path = os.path.join("/Library", "Developer", "CommandLineTools", "SDKs")
         return os.environ.get(SDK_PATH, default_path)

@@ -17,3 +17,4 @@ compilation out of your local machine.
 ## ToDo
 
 - Add an rsync utility: Compile fast in the cloud, run local.
+- Add a way to provide arguments for the generate_sdk script

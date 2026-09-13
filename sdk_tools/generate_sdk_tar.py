@@ -37,7 +37,7 @@ def __compress_macos_sdk(sdk_path: str) -> str:
             print(f"a {tarinfo.name}")
             return tarinfo
 
-        tar.add(sdk_path, filter=verbose_filter)
+        tar.add(sdk_path, arcname=sdk_name, filter=verbose_filter)
 
     if not os.path.exists(output_path):
         raise FileNotFoundError(f"Tar file {output_path} does not exist.")

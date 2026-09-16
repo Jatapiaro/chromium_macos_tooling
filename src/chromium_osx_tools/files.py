@@ -1,23 +1,7 @@
 import os
-import pathlib
+import tarfile
 import uuid
 from typing import Optional
-
-import constants
-
-
-def find_macos_sdks(sdk_path: Optional[str] = None) -> list[str]:
-    if not sdk_path:
-        sdk_path = constants.Constants.sdk_path()
-
-    if not os.path.exists(sdk_path):
-        raise FileNotFoundError(f"{sdk_path} does not exists.")
-
-    result = set()
-    for sdk in os.listdir(sdk_path):
-        result.add(str(pathlib.Path(os.path.join(sdk_path, sdk)).resolve()))
-
-    return sorted(list(result))
 
 
 def split_file_in_chunks(
@@ -65,3 +49,28 @@ def merge_file_chunks(parts_directory: str, output_path: str = "/tmp") -> str:
                 file_out.write(file_in.read())
 
     return output_file_path
+
+
+def compress_macos_sdk(sdk_path: str) -> str:
+    if not os.path.exists(sdk_path):
+        raise FileNotFoundError(f"{sdk_path} does not exists")
+
+    sdk_name = os.path.basename(sdk_path)
+    output_path = os.path.join("/tmp", f"{sdk_name}.tar.gz")
+
+    with tarfile.open(output_path, "w:gz", dereference=True) as tar:
+
+        def verbose_filter(tarinfo):
+            # Skip the circular symlink loop in Ruby.framework
+            if "Ruby.framework" in tarinfo.name:
+                return None
+
+            print(f"a {tarinfo.name}")
+            return tarinfo
+
+        tar.add(sdk_path, arcname=sdk_name, filter=verbose_filter)
+
+    if not os.path.exists(output_path):
+        raise FileNotFoundError(f"Tar file {output_path} does not exist.")
+
+    return output_path

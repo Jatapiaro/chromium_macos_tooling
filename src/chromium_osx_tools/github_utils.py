@@ -3,7 +3,7 @@ from typing import Optional
 
 import github
 
-import constants
+from chromium_osx_tools import constants
 
 
 class GitHubFactory:

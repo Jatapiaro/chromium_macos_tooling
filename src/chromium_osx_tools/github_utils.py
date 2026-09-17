@@ -1,9 +1,10 @@
+import concurrent
 import os
 from typing import Optional
 
 import github
 
-from chromium_osx_tools import constants
+from chromium_osx_tools import constants, files
 
 
 class GitHubFactory:
@@ -31,25 +32,47 @@ class GitHubFactory:
         return cls.get_instance().get_repo(f"{username}/{repo_name}")
 
 
-def upload_sdk_to_repo(repo: github.Repository.Repository, file_path: str) -> bool:
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"{file_path} does not exists")
-
-    with open(file_path, "rb") as f:
-        content = f.read()
-
-    path_in_repo = os.path.basename(file_path)
+def __get_release(
+    repo: github.Repository.Repository, release_tag: str
+) -> github.GitRelease.GitRelease:
     try:
-        file = repo.get_contents(path_in_repo)
-        print("Overwriting file in repo")
-        repo.update_file(
-            path=file.path,
-            message="Automatic SDK Update",
-            content=content,
-            sha=file.sha,
+        release = repo.get_release(release_tag)
+        return release
+    except github.UnknownObjectException:
+        release = repo.create_git_release(
+            tag=release_tag,
+            name="macOS SDKs Release",
+            message="Automated toolchain upload.",
+            draft=False,
+            prerelease=False,
         )
-    except Exception:
-        print("Initial SDK Upload")
-        repo.create_file(
-            path=path_in_repo, message="Initial SDK Upload", content=content
-        )
+        return release
+
+
+def __delete_file_from_release_if_exists(
+    release: github.GitRelease.GitRelease, file_name: str
+) -> bool:
+    for existing_asset in release.get_assets():
+        if existing_asset.name == file_name:
+            existing_asset.delete_asset()
+            return
+
+
+def upload_sdk_to_repo(
+    repo: github.Repository.Repository,
+    sdk_name: str,
+    sdk_path: str,
+    release_tag: str = "macOS_SDKs_tag",
+) -> None:
+    if not os.path.exists(sdk_path):
+        raise FileNotFoundError(f"{sdk_path} does not exists")
+
+    release = __get_release(repo=repo, release_tag=release_tag)
+    __delete_file_from_release_if_exists(release=release, file_name=sdk_name)
+    asset = release.upload_asset(
+        path=sdk_path, content_type="application/gzip", name=sdk_name
+    )
+
+    print(
+        f"Success! The new file is uploaded and available at: {asset.browser_download_url}"
+    )

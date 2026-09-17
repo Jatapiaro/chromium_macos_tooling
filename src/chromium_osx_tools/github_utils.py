@@ -1,10 +1,9 @@
-import concurrent
 import os
 from typing import Optional
 
 import github
 
-from chromium_osx_tools import constants, files
+from chromium_osx_tools import constants
 
 
 class GitHubFactory:
@@ -16,7 +15,8 @@ class GitHubFactory:
         if cls.__instance:
             return cls.__instance
 
-        gh = github.Github(constants.Constants.github_token())
+        auth = github.Auth.Token(constants.Constants.github_token())
+        gh = github.Github(auth=auth)
         cls.__instance = gh
         return gh
 
@@ -29,7 +29,10 @@ class GitHubFactory:
             repo_name = constants.Constants.github_repo()
 
         username = constants.Constants.github_username()
-        return cls.get_instance().get_repo(f"{username}/{repo_name}")
+        repo = cls.get_instance().get_repo(f"{username}/{repo_name}")
+        cls.__repos[repo_name] = repo
+
+        return repo
 
 
 def __get_release(
@@ -51,7 +54,7 @@ def __get_release(
 
 def __delete_file_from_release_if_exists(
     release: github.GitRelease.GitRelease, file_name: str
-) -> bool:
+):
     for existing_asset in release.get_assets():
         if existing_asset.name == file_name:
             existing_asset.delete_asset()

@@ -5,6 +5,8 @@ import github
 
 from chromium_osx_tools import constants
 
+RELEASE_NAME = "macOS SDKs Release"
+
 
 class GitHubFactory:
     __instance: Optional[github.Github] = None
@@ -35,8 +37,8 @@ class GitHubFactory:
         return repo
 
 
-def __get_release(
-    repo: github.Repository.Repository, release_tag: str
+def get_release(
+    repo: github.Repository.Repository, release_tag: str = "macOS_SDKs_tag"
 ) -> github.GitRelease.GitRelease:
     try:
         release = repo.get_release(release_tag)
@@ -44,12 +46,22 @@ def __get_release(
     except github.UnknownObjectException:
         release = repo.create_git_release(
             tag=release_tag,
-            name="macOS SDKs Release",
+            name=RELEASE_NAME,
             message="Automated toolchain upload.",
             draft=False,
             prerelease=False,
         )
         return release
+
+
+def find_sdk_in_release(
+    release: github.GitRelease.GitRelease, sdk_name: str
+) -> Optional[github.GitReleaseAsset]:
+    for asset in release.get_assets():
+        if sdk_name in asset.name:
+            return asset
+
+    return None
 
 
 def __delete_file_from_release_if_exists(
@@ -70,7 +82,7 @@ def upload_sdk_to_repo(
     if not os.path.exists(sdk_path):
         raise FileNotFoundError(f"{sdk_path} does not exists")
 
-    release = __get_release(repo=repo, release_tag=release_tag)
+    release = get_release(repo=repo, release_tag=release_tag)
     __delete_file_from_release_if_exists(release=release, file_name=sdk_name)
     asset = release.upload_asset(
         path=sdk_path, content_type="application/gzip", name=sdk_name
@@ -79,3 +91,13 @@ def upload_sdk_to_repo(
     print(
         f"Success! The new file is uploaded and available at: {asset.browser_download_url}"
     )
+
+
+def download_sdk_from_repo(
+    repo: github.Repository.Repository,
+    sdk_name: str,
+    release_tag: str = "macOS_SDKs_tag",
+) -> None:
+    sdks_path = constants.Constants().linux_macos_sdks_path()
+    if not os.exists(sdks_path):
+        os.makedirs(sdks_path, exist_ok=True)

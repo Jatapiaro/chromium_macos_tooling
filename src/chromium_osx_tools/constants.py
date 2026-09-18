@@ -1,8 +1,11 @@
 import os
+import pathlib
 
+CHROMIUM_SRC_PATH = "CHROMIUM_SRC_PATH"
 GITHUB_REPO = "GITHUB_REPO"
 GITHUB_TOKEN = "GITHUB_TOKEN"
 GITHUB_USERNAME = "GITHUB_USERNAME"
+LINUX_MACOS_SDKS_PATH = "LINUX_MACOS_SDKS_PATH"
 SDK_PATH = "SDK_PATH"
 
 
@@ -32,9 +35,11 @@ def _load_env(filepath=".env", valid_keys: set[str] = None):
 class Constants:
     _load_env(
         valid_keys={
+            CHROMIUM_SRC_PATH,
             GITHUB_REPO,
             GITHUB_TOKEN,
             GITHUB_USERNAME,
+            LINUX_MACOS_SDKS_PATH,
             SDK_PATH,
         }
     )
@@ -67,3 +72,14 @@ class Constants:
     def sdk_path(cls) -> str:
         default_path = os.path.join("/Library", "Developer", "CommandLineTools", "SDKs")
         return os.environ.get(SDK_PATH, default_path)
+
+    @classmethod
+    def linux_macos_sdks_path(cls) -> str:
+        home = str(pathlib.Path.home())
+        default_path = os.path.join(home, "MacOS_SDKs")
+
+        return os.environ.get(LINUX_MACOS_SDKS_PATH, default_path)
+
+    @classmethod
+    def chromium_src_path(cls) -> str:
+        return os.environ.get(CHROMIUM_SRC_PATH)
